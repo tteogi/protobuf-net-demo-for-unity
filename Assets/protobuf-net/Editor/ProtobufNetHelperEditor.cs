@@ -2,16 +2,26 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Text;
 using ProtoBuf;
 using ProtoBuf.Meta;
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.Compilation;
+using Assembly = System.Reflection.Assembly;
 
 public class ProtobufNetHelperEditor
 {
     public const string protobufNetDirRoot = "Assets/protobuf-net";
+    public const string protobuf_net_dll_path = "Assets/protobuf-net/Plugins/protobuf-net.dll";
+
+    /// <summary>
+    /// 示例类型,用于从该类型所在的Assembly中获取到所有protobuf能够使用的类型,每个相关dll中只需要填一个即可
+    /// </summary>
+    public static List<Type> exampleTypes = new List<Type>()
+    {
+        typeof(config.Test),
+    };
 
     [MenuItem("Tools/重建protobuf-model.dll")]
     private static void RebuildProtobufModelForProject()
@@ -34,35 +44,7 @@ public class ProtobufNetHelperEditor
 
     private static RuntimeTypeModel GetModel(out string typeNames)
     {
-        List<Type> types = new List<Type>();
-        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
-        for (int i = 0; i < assemblies.Length; i++)
-        {
-            var asm = assemblies[i];
-            var referAssemblies = asm.GetReferencedAssemblies();
-            if (referAssemblies != null && referAssemblies.Length > 0)
-            {
-                bool isReferProtobufNet = false;
-                for (int j = 0; j < referAssemblies.Length; j++)
-                {
-                    if (referAssemblies[j].Name == "protobuf-net")
-                    {
-                        isReferProtobufNet = true;
-                    }
-                }
-                if (isReferProtobufNet)
-                {
-                    var typeArray = asm.GetTypes();
-                    for (int j = 0; j < typeArray.Length; j++)
-                    {
-                        if (!types.Contains(typeArray[j]))
-                        {
-                            types.Add(typeArray[j]);
-                        }
-                    }
-                }
-            }
-        }
+        List<Type> types = GetAllRelatedTypeList();
         RuntimeTypeModel typeModel = RuntimeTypeModel.Create();
         StringBuilder stringBuilder = new StringBuilder();
         List<Type> list = new List<Type>();
@@ -81,15 +63,20 @@ public class ProtobufNetHelperEditor
         return typeModel;
     }
 
-    private static IEnumerable<Type> GetTypes(Assembly[] assemblies)
+    private static List<Type> GetAllRelatedTypeList()
     {
-        foreach (Assembly assembly in assemblies)
+        List<Type> list = new List<Type>();
+        List<string> assemblyNames = new List<string>();
+        for (int i = 0; i < exampleTypes.Count; i++)
         {
-            var types = AppDomain.CurrentDomain.Load(assembly.FullName).GetTypes();
-            foreach (Type type in types)
+            var assembly = Assembly.GetAssembly(exampleTypes[i]);
+            if (assemblyNames.Contains(assembly.FullName))
             {
-                yield return type;
+                continue;
             }
+            assemblyNames.Add(assembly.FullName);
+            list.AddRange(assembly.GetTypes());
         }
+        return list;
     }
 }
