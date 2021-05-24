@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package config;
+
+message Test{
+    int32 intValue = 1;
+    int64 longValue = 2;
+    string stringValue = 3;
+    float floatValue = 4;
+    double doubleValue = 5;
+    repeated int32 intArrayValue = 6;
+    repeated int64 longArrayValue = 7;
+    repeated string stringArrayValue = 8;
+    repeated float floatArrayValue = 9;
+    repeated double doubleArrayValue = 10;
+    IntStringPair intStringPairValue = 11;
+}
+
+message IntStringPair{
+    int32 key = 1;
+    string value = 2;
+}
